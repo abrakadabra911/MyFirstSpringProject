@@ -1,31 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
+
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+
        xsi:schemaLocation="
- 		http://www.springframework.org/schema/beans
- 		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util-3.2.xsd
+
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-util-3.2.xsd
+
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/beans/spring-aop-3.2.xsd">
+
+        <aop:aspectj-autoproxy />
+<!--    <context:annotation-config/>-->
+
+    <util:properties id="clientProps" location="classpath:client.properties"/>
+
+    <util:map id="loggerMap" map-class="java.util.TreeMap">
+        <entry key="INFO" value-ref="consoleEventLogger"/>
+        <entry key="ERROR" value-ref="combinedEventLogger"/>
+    </util:map>
+
+    <import resource="loggers.xml"/>                                             <!-- importowanie danych z pliku loggers.xml-->
 
     <bean id="client" class="app.Client">
-        <constructor-arg value="1"/>
-        <constructor-arg value="John Smith"/>
+        <property name="greeting" value="${greeting}"/>
+        <constructor-arg value="${id}"/>
+        <constructor-arg value="${name}"/>
     </bean>
 
-    <bean id="eventLogger" class="app.ConsoleEventLogger"/>
-
-    <bean id="fileEventLogger" class="app.FileEventLogger" init-method="init" destroy-method="destroy">
-        <constructor-arg value="*.//output.log"/>
-    </bean>
-
-    <bean id="cacheFileEventLogger" class="app.CacheFileEventLogger" parent="fileEventLogger">
-        <constructor-arg type="int" value="5"/>
-    </bean>
-
-    <bean id="app" class="app.App">
+    <bean id="app" class="app.App" autowire="constructor">
         <constructor-arg ref="client"/>
-        <constructor-arg ref="cacheFileEventLogger"/>
+        <constructor-arg value="#{ T(app.Event).isDay() ? fileEventLogger : consoleEventLogger }"/>
+        <constructor-arg ref="loggerMap"/>
     </bean>
 
-    <bean id="event" class="app.Event" scope="prototype">
+<!--    <bean id="event" class="app.Event" scope="prototype">
         <constructor-arg>
             <bean class="java.util.Date"/>
         </constructor-arg>
@@ -34,7 +52,18 @@
                   class="java.text.DateFormat"
                   factory-method="getDateTimeInstance"/>
         </constructor-arg>
+    </bean>-->
+
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:client.properties</value>
+            </list>
+        </property>
+        <property name="ignoreResourceNotFound" value="true"/>
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
     </bean>
 
+    <bean id="logaspect" class="app.LoggingAspect"/>
 
 </beans>

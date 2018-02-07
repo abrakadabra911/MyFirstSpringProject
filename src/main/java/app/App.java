@@ -3,18 +3,26 @@ package app;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.Map;
+
 public class App {
     Client client;
-    EventLogger eventLogger;
+    Map<EventType,EventLogger> loggers;
+    EventLogger defaultLogger;
 
-    void logEvent(Event event){
-       // String message = event.toString().replaceAll(""+client.getId(), client.getFullName());
-        eventLogger.logEvent(event);
+    void logEvent(EventType type, String msg){
+        EventLogger logger = loggers.get(type);
+        if(logger == null) logger = defaultLogger;
+        Event event = new Event(new Date(), DateFormat.getInstance(), type, msg);
+        logger.logEvent(event);
     }
 
-    public App(Client client, EventLogger eventLogger) {
+    public App(Client client, EventLogger eventlogger, Map<EventType,EventLogger> loggers) {
         this.client = client;
-        this.eventLogger = eventLogger;
+        this.loggers = loggers;
+        this.defaultLogger = eventlogger;
     }
 
     public static void main(String[] args) {
@@ -24,8 +32,8 @@ public class App {
 
         App app = (App) ctx.getBean("app");
 
-        for(int i = 0; i < 10; i++)
-        app.logEvent((Event) ctx.getBean("event"));
+
+       app.logEvent(EventType.ERROR, "testLog");
 
         ctx.close();
     }
